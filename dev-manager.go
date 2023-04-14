@@ -90,6 +90,7 @@ func (dm *DeviceManager) getAppliance(id string) *Appliance {
    return d
 }
 // -------------------------------------------
+// 修改configure方法
 func (dm *DeviceManager) configure(jdata string) {
    conf := make([]configurationData, 0)
    err := json.Unmarshal([]byte(jdata), &conf)
@@ -103,9 +104,7 @@ func (dm *DeviceManager) configure(jdata string) {
       d := dm.getAppliance(c.GwId)
       d.GwId = c.GwId
       d.key = []byte(c.Key)
-      if len(c.Ip) > 0 {
-         d.Ip = c.Ip
-      }
+      d.Ip = c.Ip // 从配置文件中直接设置设备IP
       b, ok := makeDevice(c.Type)
       if ok {
          b.configure(d, &c)
@@ -113,7 +112,19 @@ func (dm *DeviceManager) configure(jdata string) {
          dm.namedColl[b.Name()] = b
          go d.tcpConnManager(d.tcpChan) // to be run after configuration
       }
-   }
+      // 更新设备信息
+      rd := &pubAppliance{
+         GwId:       c.GwId,
+         Ip:         c.Ip,
+         Active:     1,       // 设为激活状态，可以根据配置文件进行调整
+         Ability:    0,       // 根据需要设置设备能力
+         Mode:       0,       // 根据需要设置设备模式
+         ProductKey: "",      // 根据需要设置产品密钥
+         Version:    "3.1",   // 根据需要设置设备版本
+         Encrypt:    false,   // 根据需要设置加密选项
+      }
+ d.update(rd)
+}
 }
 
 // Device Manager
@@ -123,7 +134,7 @@ func newDeviceManager() *DeviceManager {
    dm := new(DeviceManager)
    dm.collection = make(map[string]*Appliance)
    dm.namedColl = make(map[string]Device)
-   go udpListener(dm)
+   //go udpListener(dm)
    return dm
 }
 func NewDeviceManager(jdata string) *DeviceManager {
